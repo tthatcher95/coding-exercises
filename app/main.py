@@ -49,7 +49,7 @@ tags_metadata = [
 
 ]
 app = FastAPI(openapi_tags=tags_metadata)
-# app.mount("/static", StaticFiles(directory="/code/app/static"), name="static")
+app.mount("/static", StaticFiles(directory="/code/app/static"), name="static")
 
 # Try to read in file, if not, all other pages will be redirected for to a NotFound page
 fileFound = True
