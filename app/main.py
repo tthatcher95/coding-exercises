@@ -1,17 +1,17 @@
-from fastapi import FastAPI
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 import io
+import json
+import pprint
+import numpy as np
+
+from fastapi import FastAPI
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse, HTMLResponse, RedirectResponse
 from fastapi import FastAPI, Response, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-
 from json import loads, dumps
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-import numpy as np
-import json
-import pprint
 
 matplotlib.use('WebAgg')
 plt.style.use('ggplot')
@@ -49,7 +49,7 @@ tags_metadata = [
 
 ]
 app = FastAPI(openapi_tags=tags_metadata)
-app.mount("/static", StaticFiles(directory="/code/app/static"), name="static")
+# app.mount("/static", StaticFiles(directory="/code/app/static"), name="static")
 
 # Try to read in file, if not, all other pages will be redirected for to a NotFound page
 fileFound = True
@@ -71,14 +71,22 @@ def plot(column_name):
     fig.canvas.draw()
     png_output = io.BytesIO()
     FigureCanvas(fig).print_png(png_output)
-    pngFile = f'static/{column_name}.png'
+    pngFile = f'/code/app/static/{column_name}.png'
     fig.savefig(pngFile)
     return Response(content=png_output.getvalue(), media_type='image/png')
 
+def response(column_name, return_plot):
+    if not fileFound:
+        return RedirectResponse("http://127.0.0.1/docs")
+    elif return_plot:
+        return plot(column_name)
+    else:
+        return HTMLResponse(content=projectionFile[column_name].value_counts().to_frame().to_html(), status_code=200)
+
 @app.get("/")
 def MainPage():
-    if fileFound:
-        return RedirectResponse("http://127.0.0.1:8000/docs")
+    if not fileFound:
+        return RedirectResponse("http://127.0.0.1/docs")
     else:
         html_not_found = """
         <!DOCTYPE html>
@@ -95,65 +103,29 @@ def MainPage():
 
 
 @app.get("/Attribute/histogram")
-async def AttributeHist(return_plot: bool = False, tags=['Attribute']):
-    if not fileFound:
-        return RedirectResponse("http://127.0.0.1:8000/")
-    elif return_plot:
-        return plot("Attribute")
-    else:
-        return HTMLResponse(content=projectionFile['Attribute'].value_counts().to_frame().to_html(), status_code=200)
+async def AttributeHist(return_plot: bool = False):
+    return response("Attribute", return_plot)
 
-@app.get("/Commodity/histogram")
-async def CommodityHist(return_plot: bool = False, tags=['Commodity']):
-    if not fileFound:
-        return RedirectResponse("http://127.0.0.1:8000/")
-    elif return_plot:
-        return plot("Commodity")
-    else:
-        return HTMLResponse(content=projectionFile['Commodity'].value_counts().to_frame().to_html(), status_code=200)
+@app.get("/Commodity/histogram", tags=['Commodity'])
+async def CommodityHist(return_plot: bool = False):
+    return response("Commodity", return_plot)
 
-@app.get("/CommodityType/histogram")
-async def CommodityTypeHist(return_plot: bool = False, tags=['CommodityType']):
-    if not fileFound:
-        return RedirectResponse("http://127.0.0.1:8000/")
-    elif return_plot:
-        return plot("CommodityType")
-    else:
-        return HTMLResponse(content=projectionFile['CommodityType'].value_counts().to_frame().to_html(), status_code=200)
+@app.get("/CommodityType/histogram", tags=['CommodityType'])
+async def CommodityTypeHist(return_plot: bool = False):
+    return response("Commodity", return_plot)
 
-@app.get("/Units/histogram")
-async def UnitsHist(return_plot: bool = False, tags=['Units']):
-    if not fileFound:
-        return RedirectResponse("http://127.0.0.1:8000/")
-    elif return_plot:
-        return plot("Units")
-    else:
-        return HTMLResponse(content=projectionFile['Units'].value_counts().to_frame().to_html(), status_code=200)
+@app.get("/Units/histogram", tags=['Units'])
+async def UnitsHist(return_plot: bool = False):
+    return response("CommodityType", return_plot)
 
-@app.get("/YearType/histogram")
-async def YearTypeHist(return_plot: bool = False, tags=['YearType']):
-    if not fileFound:
-        return RedirectResponse("http://127.0.0.1:8000/")
-    elif return_plot:
-        return plot("YearType")
-    else:
-        return HTMLResponse(content=projectionFile['YearType'].value_counts().to_frame().to_html(), status_code=200)
+@app.get("/YearType/histogram", tags=['YearType'])
+async def YearTypeHist(return_plot: bool = False):
+    return response("YearType", return_plot)
 
-@app.get("/Year/histogram")
-async def YearHist(return_plot: bool = False, tags=['YearHist']):
-    if not fileFound:
-        return RedirectResponse("http://127.0.0.1:8000/")
-    elif return_plot:
-        return plot("Year")
-    else:
-        return HTMLResponse(content=projectionFile['Year'].value_counts().to_frame().to_html(), status_code=200)
+@app.get("/Year/histogram", tags=['YearHist'])
+async def YearHist(return_plot: bool = False):
+    return response("Year", return_plot)
 
-
-@app.get("/Value/histogram")
-async def ValueHist(return_plot: bool = False, tags=['Value']):
-    if not fileFound:
-        return RedirectResponse("http://127.0.0.1:8000/")
-    elif return_plot:
-        return plot("Value")
-    else:
-        return HTMLResponse(content=projectionFile['Value'].value_counts().to_frame().to_html(), status_code=200)
+@app.get("/Value/histogram", tags=['Value'])
+async def ValueHist(return_plot: bool = False):
+    return response("Value", return_plot)
